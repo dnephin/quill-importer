@@ -27,6 +27,10 @@ partial = (func, args...) ->
     func.bind(null, args...)
 
 
+flatMap = (seq, func) ->
+    seq.concat.apply([], seq.map(func))
+
+
 getRandomId = (length) ->
     chars = "0123456789abcdef"
     getChar = -> chars.charAt(Math.floor(Math.random() * chars.length))
@@ -52,17 +56,22 @@ startTopic = ->
     feedback: []
     current: null
 
-
 #
 # End lib section
 #
 
 
+# TODO: round off time
 parseStatementPublishedDate = (doc) ->
     Date.create(
         doc('#discussion-context .discussion-additional-info')
             .clone().children().remove().end().text().trim()
             .replace('Started ', '').replace(' by', ''))
+
+
+# TODO: round off time
+parseFeedbackDate = (post) ->
+    Date.create(post('.activity-item-time a[href^=#comment-]').text())
 
 
 parseAuthor = (ele) ->
@@ -77,7 +86,7 @@ buildDocument = (sections) ->
 
 # TODO: preserve <br />
 fromParagraphs = (eles) ->
-    (cheerio.load(ele)('p').text() for ele in eles)
+    (cheerio.load(ele)('p').text() for ele in eles).filter((x) -> x.length > 0)
 
 
 parseStatement = (content) ->
@@ -88,6 +97,7 @@ parseStatement = (content) ->
     title = doc('#discussion-title').children().remove().end().text().trim()
 
     statement =
+        # TODO: use uniq ID from loomio
         label: buildLabel(title)
         version:
             semantic: [1, 0, 0]
@@ -105,11 +115,28 @@ parseStatement = (content) ->
     topic
 
 
-parseFeedback = (topic, content) ->
+parseFeedbackFromFile = (topic, content) ->
     cli.info "Parsing feedback from #{hash(content)}"
-    feedback =
-        id: ""
-    topic.feedback.push feedback
+    # TODO: we don't need to parse this twice
+    doc = cheerio.load(content)
+
+    for post in doc('.activity-item-container')
+        topic.feedback.push(
+            parseFeedbackFromPost(topic, cheerio.load(post)))
+
+
+parseFeedbackFromPost = (topic, post) ->
+    datetime = parseFeedbackDate(post)
+
+    id: post('a.comment-anchor').attr('id')
+    position: ""
+    author: parseAuthor(post('.activity-item-avatar a'))
+    created: datetime
+    "last-modified": datetime
+    full: buildDocument(
+        fromParagraphs(post('.activity-item-header').children()))
+    reference: ""
+    state: "new"
 
 
 cli.parse
@@ -132,7 +159,7 @@ cli.main (args, options) ->
                 cli.info "Reading #{file}"
                 fs.read(file)
             .then (contents) ->
-                contents.map partial(parseFeedback, topic)
+                contents.map(partial(parseFeedbackFromFile, topic))
             .then ->
                 Promise.resolve(topic)
 
