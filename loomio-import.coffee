@@ -84,6 +84,7 @@ buildDocument = (sections) ->
         body: sectionText
 
 
+# TODO: handle blockquotes
 # TODO: preserve <br />
 fromParagraphs = (eles) ->
     (cheerio.load(ele)('p').text() for ele in eles).filter((x) -> x.length > 0)
@@ -135,7 +136,9 @@ parseFeedbackFromPost = (topic, post) ->
     "last-modified": datetime
     full: buildDocument(
         fromParagraphs(post('.activity-item-header').children()))
-    reference: ""
+    reference:
+        document: "statement-full"
+        section: "f3abaaaeb12"
     state: "new"
 
 
