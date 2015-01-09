@@ -28,7 +28,11 @@ partial = (func, args...) ->
 
 
 flatMap = (seq, func) ->
-    seq.concat.apply([], seq.map(func))
+    flatten(seq.map(func))
+
+
+flatten = (seq) ->
+    seq.concat.apply([], seq)
 
 
 getRandomId = (length) ->
@@ -75,7 +79,8 @@ parseFeedbackDate = (post) ->
 
 
 parseAuthor = (ele) ->
-    id: ele.attr('href').toLowerCase().split('/')[2..].join('-')
+    [uniq, name] = ele.attr('href').toLowerCase().split('/')[2..]
+    id: "#{name}-#{uniq}".substring(0, 32)
 
 
 buildDocument = (sections) ->
@@ -87,7 +92,10 @@ buildDocument = (sections) ->
 # TODO: handle blockquotes
 # TODO: preserve <br />
 fromParagraphs = (eles) ->
-    (cheerio.load(ele)('p').text() for ele in eles).filter((x) -> x.length > 0)
+    flatten(
+        (cheerio.load(ele)('p').text().trim() for ele in eles)
+        .filter((p) -> p.length > 0)
+        .map((p) -> p.split('\n')))
 
 
 parseStatement = (content) ->
@@ -130,7 +138,7 @@ parseFeedbackFromPost = (topic, post) ->
     datetime = parseFeedbackDate(post)
 
     id: post('a.comment-anchor').attr('id')
-    position: ""
+    position: "accept"
     author: parseAuthor(post('.activity-item-avatar a'))
     created: datetime
     "last-modified": datetime
