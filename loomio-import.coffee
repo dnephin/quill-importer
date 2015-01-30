@@ -111,7 +111,7 @@ parseStatement = (content) ->
         version:
             semantic: [1, 0, 0]
             details: "Imported from Loomio"
-            "published-date": parseStatementPublishedDate(doc)
+            publishedDate: parseStatementPublishedDate(doc)
         authors: [parseAuthor(doc(
             '#discussion-context .discussion-additional-info a.user-name'))]
         title: title
@@ -141,7 +141,7 @@ parseFeedbackFromPost = (topic, post) ->
     position: "accept"
     author: parseAuthor(post('.activity-item-avatar a'))
     created: datetime
-    "last-modified": datetime
+    lastModified: datetime
     full: buildDocument(
         fromParagraphs(post('.activity-item-header').children()))
     reference:
